@@ -21,15 +21,3 @@ if __name__ == '__main__':
             contents = json.loads(resp)
             with open(i + '.json','w') as j:
                 j.write(json.dumps(contents, indent=2))
-file = "D://test//student.txt"
-with open(file, "r") as f:
-    for line in f.readlines():
-        line = line.strip('\n')
-        result = line.split(' ')
-        if data[0] == id:
-            pwd = result[1]
-	        name = result[2]
-	        gender = result[3]
-	        birthday = result[4]
-	        institute = result[5]
-	        major = result[6]
