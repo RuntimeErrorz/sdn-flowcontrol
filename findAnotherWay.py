@@ -25,6 +25,8 @@ def loadmap(devices, links, hosts):
     return map, LinksList, devices, hosts
 
 
+map, links, devices, hosts = loadmap('devices', 'links', 'hosts')
+
 
 def Dijkstra(src, dsts):
     length = len(map)
@@ -75,7 +77,17 @@ def findAnotherWay(ip_protocol, src, dst):
     linkAllbyPath(ip_protocol, path, lastPort, port_dst, mac_src, mac_dst)
 
 
-def linkAllbyPath(ip_protocol, path, lastPort, port_dst, mac_src, mac_dst="optional", flag=1):
+def linkAllbyPath(ip_protocol, path, lastPort, port_dst, mac_src, temp_port=-1, mac_dst="optional", flag=1):
+    if (len(path) == 1):
+        print(port_dst, temp_port)
+        ID1 = get_deviceID(path[0])
+        add_flow(ip, ID1, 'myApp', arpInstruction, arpCriteria)
+        instruction1 = [{"type": "OUTPUT", "port": temp_port}]
+        criteria1 = get_criteria(
+            ip_protocol, port_dst, mac_src, mac_dst=temp_port)
+        add_flow(ip, ID1, "myApp", instruction1, criteria1)
+        return
+
     for i in range(len(path) - 1):
         ID1 = get_deviceID(path[i])
         ID2 = get_deviceID(path[i+1])
@@ -137,10 +149,11 @@ def findAnotherWays(ip_protocol, src, dsts):
     paths = Dijkstra(src, dstss)
     print(paths)
     commonPath = longestCommonPrefix(paths)
+    print(commonPath)
     merge_point = commonPath[-1]
     merge_id = get_deviceID(merge_point)
     tmpP = commonPath[-2]
-    _, last_port = get_ports(get_deviceID(tmpP), merge_id, links)
+    temp_port, last_port = get_ports(get_deviceID(tmpP), merge_id, links)
     instructions = [{"type": "GROUP", "groupId": 1}]
     criteria = get_criteria(ip_protocol, last_port, mac_src)[:-1]
     individualPaths = []
@@ -154,28 +167,21 @@ def findAnotherWays(ip_protocol, src, dsts):
     add_flow(ip, merge_id, "myApp", instructions, criteria)
     add_flow(ip, merge_id, "myApp", arpInstruction, arpCriteria)
     linkAllbyPath(ip_protocol, commonPath[:-1],
-                  last_port, port_dst, mac_src, flag=0)
+                  last_port, port_dst, mac_src, temp_port=temp_port, flag=0)
     print("------------------")
     for (individualPath, lastport, mac_dst) in zip(individualPaths, lastPorts, mac_dsts):
         print(mac_src, mac_dst)
-        _, port_dst = get_ports(
+        temp_port, port_dst = get_ports(
             merge_id, get_deviceID(individualPath[0]), links)
         linkAllbyPath(ip_protocol, individualPath, lastport,
-                      port_dst, mac_src, mac_dst, flag=0)
+                      port_dst, mac_src, temp_port=temp_port, mac_dst=mac_dst, flag=0)
         print("--------------")
 
 
-
-map, links, devices, hosts = loadmap('devices', 'links', 'hosts')
-
-for device in devices:
-    block_fwd(ip, device['id'])
-# def findDownSwitch(devices): Todo?
-#     for device in devices:
-#         if device['humanReadableLastUpdate'] ==
 
 #findAnotherWay(1, '00:00:00:00:00:01/None', '00:00:00:00:00:03/None')
 #findAnotherWay(1, '00:00:00:00:00:01/None', '00:00:00:00:00:02/None')
 
 
-#findAnotherWays(17, '00:00:00:00:00:01/None', ['00:00:00:00:00:02/None','00:00:00:00:00:03/None'])
+findAnotherWays(17, '00:00:00:00:00:03/None',
+                ['00:00:00:00:00:01/None', '00:00:00:00:00:02/None'])

@@ -1,7 +1,5 @@
 import requests
-import os
 import json
-from requests.api import head
 from requests.auth import HTTPBasicAuth
 
 ip = "127.0.0.1"
@@ -97,7 +95,7 @@ def get_criteria(ip_protocol, in_port, mac_src, mac_dst="optional", ethtype="0x0
     ]
 
 
-def add_flow(controller_ip, deviceId, appId, instructions, criteria, priority = 40000):
+def add_flow(controller_ip, deviceId, appId, instructions, criteria, priority=40000):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -139,20 +137,51 @@ def add_group_table(controller_ip, deviceId, groupId, appCookie, buckets):
         controller_ip, deviceId)
     resp = requests.post(url=get_device_url, headers=headers,
                          auth=auth, data=json.dumps(data))
-    return resp.text
+    return resp.status_code
 
 
-def delete_device(controller_ip, deviceId):
+def block_fwd(controller_ip, appId, devId):
+    criteria = [{"type": "ETH_TYPE", "ethType": "0x0800"}]
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+    }
+    params = {
+        "appId": appId
+    }
+    data = {
+        "priority": 6,
+        "timeout": 0,
+        "isPermanent": True,
+        "deviceId": devId,
+        "treatment": {
+        },
+        "selector": {
+            "criteria": criteria
+        }
+    }
+    get_device_url = 'http://{}:8181/onos/v1/flows/{}'.format(
+        controller_ip, devId)
+    resp = requests.post(url=get_device_url, params=params,
+                         headers=headers, auth=auth, data=json.dumps(data))
+    return resp.status_code
+
+
+def del_flows_by_appId(controller_ip, appId):
     headers = {
         'Accept': 'application/json',
     }
-    get_device_url = 'http://{}:8181/onos/v1/devices/{}'.format(
-        controller_ip, deviceId)
+    get_device_url = 'http://{}:8181/onos/v1/flows/application/{}'.format(
+        controller_ip, appId)
     resp = requests.delete(url=get_device_url, headers=headers, auth=auth)
-    return resp.status_code, resp.text
+    return resp.status_code
 
 
-def block_fwd(controller_ip, devId):
-    instruction = [{"type": "OUTPUT", "port": "drop"}]
-    criteria = [{"type": "ETH_TYPE", "ethType": "0x0800"}]
-    add_flow(controller_ip, devId, "block", instruction, criteria, 11000)
+def del_groups_by_devId_appCookie(controller_ip, devId, appCookie):
+    headers = {
+        'Accept': 'application/json',
+    }
+    get_device_url = 'http://{}:8181/onos/v1/groups/{}/{}'.format(
+        controller_ip, devId, appCookie)
+    resp = requests.delete(url=get_device_url, headers=headers, auth=auth)
+    return resp.status_code
