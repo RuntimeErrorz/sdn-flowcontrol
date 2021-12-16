@@ -1,6 +1,7 @@
 import json
-from controller import add_flow, get_criteria, add_group_table, get_group_buckets, get_deviceID, get_ports, longestCommonPrefix, block_fwd
+from controller import *
 ip = "127.0.0.1"
+import heapq
 
 arpInstruction = [{"type": "OUTPUT", "port": "NORMAL"}]
 arpCriteria = [{"type": "ETH_TYPE", "ethType": "0x0806"}]
@@ -11,42 +12,59 @@ def loadmap(devices, links, hosts):
         ls = json.load(j)
     length = len(list(ls.values())[0])
     devices = list(ls.values())[0]
+    downDevices = []
+    i = 0
+    temp = length
+    while i < temp:
+        if not devices[i]["available"]:
+            downDevices.append(devices[i]["id"])
+            del(devices[i])
+            temp -= 1
+            continue
+        else:
+            i += 1
     with open(str(links)+".json", 'r') as k:
         linksls = json.load(k)
     with open(str(hosts)+".json", 'r') as h:
         hostsls = json.load(h)
     hosts = list(hostsls.values())[0]
     map = [[float('inf') for i in range(length)] for i in range(length)]
+    for i in range(length):
+        map[i][i] = 0
     LinksList = list(linksls.values())[0]
     for link in LinksList:
-        src = (int(link['src']['device'][3:], 16)) - 1
-        dst = (int(link['dst']['device'][3:], 16)) - 1
+        srcId = link['src']['device']
+        dstId = link['dst']['device']
+        if srcId in downDevices or dstId in downDevices:
+            continue
+        src = (int(srcId[3:], 16)) - 1
+        dst = (int(dstId[3:], 16)) - 1
         map[src][dst] = 1
     return map, LinksList, devices, hosts
 
 
-map, links, devices, hosts = loadmap('devices', 'links', 'hosts')
+if __name__ == "__main__":
+    map, links, devices, hosts = loadmap('devices', 'links', 'hosts')
 
 
-def Dijkstra(src, dsts):
+def heapyDijkstra(src, dsts):
     length = len(map)
-    visited = [False for i in range(length)]
     path = [-1 for i in range(length)]
     finalPaths = [[]for _ in range(len(dsts))]
     distance = [float('inf') for _ in range(length)]
     distance[src - 1] = 0
-    while True:
-        v = -1
-        for u in range(length):
-            if not visited[u] and (v == -1 or distance[u] < distance[v]):
-                v = u
-        if v == -1:
-            break
-        visited[v] = True
+    for i in range(length):
+        distance[i] = map[src-i][i]
+    queue = []
+    heapq.heapify(queue)
+    heapq.heappush(queue, distance[src-1])
+    while queue:
+        v = heapq.heappop(queue)
         for u in range(length):
             if distance[v] + map[v][u] < distance[u]:
                 path[u] = v
-            distance[u] = min(distance[u], distance[v] + map[v][u])
+                distance[u] = distance[v] + map[v][u]
+                heapq.heappush(queue,distance[u])
     for (finalPath, dst) in zip(finalPaths, dsts):
         finalPath.append(dst)
         p = dst - 1
@@ -72,9 +90,10 @@ def findAnotherWay(ip_protocol, src, dst):
             dst = int(host['locations'][0]['elementId'][3:], 16)
     add_flow(ip, srcId, 'myApp', arpInstruction, arpCriteria)
     add_flow(ip, dstId, 'myApp', arpInstruction, arpCriteria)
-    path = Dijkstra(src, [dst])[0]
+    path = heapyDijkstra(src, [dst])[0]
     print(path)
-    linkAllbyPath(ip_protocol, path, lastPort, port_dst, mac_src, mac_dst)
+    linkAllbyPath(ip_protocol, path, lastPort,
+                  port_dst, mac_src, mac_dst=mac_dst)
 
 
 def linkAllbyPath(ip_protocol, path, lastPort, port_dst, mac_src, temp_port=-1, mac_dst="optional", flag=1):
@@ -107,6 +126,7 @@ def linkAllbyPath(ip_protocol, path, lastPort, port_dst, mac_src, temp_port=-1, 
                 ip_protocol, port_dst, mac_dst, mac_dst=mac_src)
             add_flow(ip, ID1, "myApp", instruction2, criteria2)
         port_src, port_dst = get_ports(ID1, ID2, links)
+
     port_src = port_dst
     port_dst = lastPort
     add_flow(ip, ID2, "myApp", arpInstruction, arpCriteria)
@@ -146,7 +166,7 @@ def findAnotherWays(ip_protocol, src, dsts):
     add_flow(ip, srcId, 'myApp', arpInstruction, arpCriteria)
     for dstId in dstIds:
         add_flow(ip, dstId, 'myApp', arpInstruction, arpCriteria)
-    paths = Dijkstra(src, dstss)
+    paths = heapyDijkstra(src, dstss)
     print(paths)
     commonPath = longestCommonPrefix(paths)
     print(commonPath)
@@ -178,10 +198,9 @@ def findAnotherWays(ip_protocol, src, dsts):
         print("--------------")
 
 
-
-#findAnotherWay(1, '00:00:00:00:00:01/None', '00:00:00:00:00:03/None')
-#findAnotherWay(1, '00:00:00:00:00:01/None', '00:00:00:00:00:02/None')
-
-
-findAnotherWays(17, '00:00:00:00:00:03/None',
-                ['00:00:00:00:00:01/None', '00:00:00:00:00:02/None'])
+if __name__ == "__main__":
+    pass
+    # findAnotherWay(1, '00:00:00:00:00:01/None', '00:00:00:00:00:03/None')
+    # findAnotherWay(1, '00:00:00:00:00:01/None', '00:00:00:00:00:02/None')
+    # findAnotherWays(17, '00:00:00:00:00:03/None',
+    #                 ['00:00:00:00:00:01/None', '00:00:00:00:00:02/None'])
