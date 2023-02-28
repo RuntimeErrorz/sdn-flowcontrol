@@ -26,7 +26,7 @@ python3 blockFwd.py
 ```
 
 # 下发流表组表
-运行findAnotherWay.py，其中单播使用pingall展示，因此添加了双向流表。组播使用udp播放视频展示。单播为findAnotherWay()，组播为findAnotherWays()。可以自行修改参数。值得注意的是这两个函数的第一个形参为IP协议号，udp为17，ICMP为1。播放视频参照步骤参考https://uestc.feishu.cn/docs/doccnzdEiVYzfBOV4Dspc8fMHie#WgGz2W中的4.2一节操作。**现在的组播操作只需要源主机向目的主机的第一个发出UDP包即可。举例：**
+运行findAnotherWay.py，其中单播使用pingall展示，因此添加了双向流表。组播使用udp播放视频展示。单播为findAnotherWay()，组播为findAnotherWays()。可以自行修改参数。值得注意的是这两个函数的第一个形参为IP协议号，udp为17，ICMP为1。播放视频参照步骤参考 https://uestc.feishu.cn/docs/doccnzdEiVYzfBOV4Dspc8fMHie#WgGz2W 中的4.2一节操作。**现在的组播操作只需要源主机向目的主机的第一个发出UDP包即可。举例：**
 
 ```python
 findAnotherWays(17, '00:00:00:00:00:03/None',
@@ -49,9 +49,9 @@ python3 deleteMyFlows.py
 
 # 可能有的Bug
 
-1. 当组播点为第一个交换机时会触发数组越界，这种情况应该使用多次单播，findAnotherWay(17,src)。（强行Feature）
+1. 当组播点为第一个交换机时会触发数组越界，这种情况应该使用多次单播，findAnotherWay(17, src)。（强行Feature）
 2. 有时候组表添加后状态不是 "ADDED"，而是 “PENDING_ADD_RETRY”，复现条件应该是建立两次不同的拓扑，重启解。
-3. **有时候组播可能不成功，可能是因为onos反应缓慢，只需要再执行一次就好了。**
+3. **有时候组播可能不成功，可能是因为ONOS反应缓慢，只需要再执行一次就好了。**
 
 # 未来计划
 
