@@ -6,7 +6,7 @@ ip = "127.0.0.1"
 auth = HTTPBasicAuth("karaf", "karaf")
 
 
-def get_deviceID(src):
+def get_device_id(src):
     src = str(hex(src))[2:]
     list = ['0' for _ in range(16 - len(src))]
     list.append(src)
@@ -14,13 +14,13 @@ def get_deviceID(src):
     return ''.join(list)
 
 
-def get_ports(ID1, ID2, links):
+def get_ports(id1, id2, links):
     for link in links:
-        if link['src']['device'] == ID1 and link['dst']['device'] == ID2:
+        if link['src']['device'] == id1 and link['dst']['device'] == id2:
             return link['src']['port'], link['dst']['port']
 
 
-def longestCommonPrefix(lists):
+def longest_common_prefix(lists):
     res = []
     for tmp in zip(*lists):
         tmp_set = set(tmp)
@@ -38,7 +38,7 @@ def get_group_buckets(iplist, mac_dst_list, portlist):
             "treatment": {
                 "instructions": [
                     {
-                        "type": "OUTPUT",
+                        "type": "output",
                         "port": portlist[0]
                     }
                 ]
@@ -51,17 +51,17 @@ def get_group_buckets(iplist, mac_dst_list, portlist):
                 "treatment": {
                     "instructions": [
                         {
-                            "type": "L2MODIFICATION",
-                            "subtype": "ETH_DST",
+                            "type": "l2modification",
+                            "subtype": "eth_dst",
                             "mac": mac_dst
                         },
                         {
-                            "type": "L3MODIFICATION",
-                            "subtype": "IPV4_DST",
+                            "type": "l3modification",
+                            "subtype": "ipv4_dst",
                             "ip": ip
                         },
                         {
-                            "type": "OUTPUT",
+                            "type": "output",
                             "port": port
                         }
                     ]
@@ -73,41 +73,41 @@ def get_group_buckets(iplist, mac_dst_list, portlist):
 def get_criteria(ip_protocol, in_port, mac_src, mac_dst="optional", ethtype="0x0800"):
     return [
         {
-            "type": "ETH_TYPE",
-                    "ethType": ethtype
+            "type": "eth_type",
+                    "eth_type": ethtype
         },
         {
-            "type": "IP_PROTO",
+            "type": "ip_proto",
                     "protocol": ip_protocol
         },
         {
-            "type": "ETH_SRC",
+            "type": "eth_src",
                     "mac": mac_src
         },
         {
-            "type": "IN_PORT",
+            "type": "in_port",
                     "port": in_port
         },
         {
-            "type": "ETH_DST",
+            "type": "eth_dst",
                     "mac": mac_dst
         },
     ]
 
 
-def add_flow(controller_ip, deviceId, appId, instructions, criteria, priority=40000):
+def add_flow(controller_ip, device_id, app_id, instructions, criteria, priority=40000):
     headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'content-type': 'application/json',
+        'accept': 'application/json',
     }
     params = {
-        "appId": appId
+        "app_id": app_id
     }
     data = {
         "priority": priority,
         "timeout": 0,
-        "isPermanent": True,
-        "deviceId": deviceId,
+        "is_permanent": True,
+        "device_id": device_id,
         "treatment": {
             "instructions": instructions
         },
@@ -116,44 +116,44 @@ def add_flow(controller_ip, deviceId, appId, instructions, criteria, priority=40
         }
     }
     get_device_url = 'http://{}:8181/onos/v1/flows/{}'.format(
-        controller_ip, deviceId)
+        controller_ip, device_id)
     resp = requests.post(url=get_device_url, params=params,
                          headers=headers, auth=auth, data=json.dumps(data))
     return resp.status_code
 
 
-def add_group_table(controller_ip, deviceId, groupId, appCookie, buckets):
+def add_group_table(controller_ip, device_id, group_id, app_cookie, buckets):
     headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'content-type': 'application/json',
+        'accept': 'application/json',
     }
     data = {
-        "type": "ALL",
-        "appCookie": appCookie,
-        "groupId": "{}".format(groupId),
+        "type": "all",
+        "app_cookie": app_cookie,
+        "group_id": "{}".format(group_id),
         "buckets": buckets
     }
     get_device_url = 'http://{}:8181/onos/v1/groups/{}'.format(
-        controller_ip, deviceId)
+        controller_ip, device_id)
     resp = requests.post(url=get_device_url, headers=headers,
                          auth=auth, data=json.dumps(data))
     return resp.status_code
 
 
-def block_fwd(controller_ip, appId, devId):
-    criteria = [{"type": "ETH_TYPE", "ethType": "0x0800"}]
+def block_fwd(controller_ip, app_id, dev_id):
+    criteria = [{"type": "eth_type", "eth_type": "0x0800"}]
     headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'content-type': 'application/json',
+        'accept': 'application/json',
     }
     params = {
-        "appId": appId
+        "app_id": app_id
     }
     data = {
         "priority": 6,
         "timeout": 0,
-        "isPermanent": True,
-        "deviceId": devId,
+        "is_permanent": True,
+        "device_id": dev_id,
         "treatment": {
         },
         "selector": {
@@ -161,27 +161,27 @@ def block_fwd(controller_ip, appId, devId):
         }
     }
     get_device_url = 'http://{}:8181/onos/v1/flows/{}'.format(
-        controller_ip, devId)
+        controller_ip, dev_id)
     resp = requests.post(url=get_device_url, params=params,
                          headers=headers, auth=auth, data=json.dumps(data))
     return resp.status_code
 
 
-def del_flows_by_appId(controller_ip, appId):
+def del_flows_by_app_id(controller_ip, app_id):
     headers = {
-        'Accept': 'application/json',
+        'accept': 'application/json',
     }
     get_device_url = 'http://{}:8181/onos/v1/flows/application/{}'.format(
-        controller_ip, appId)
+        controller_ip, app_id)
     resp = requests.delete(url=get_device_url, headers=headers, auth=auth)
     return resp.status_code
 
 
-def del_groups_by_devId_appCookie(controller_ip, devId, appCookie):
+def del_groups_by_dev_id_app_cookie(controller_ip, dev_id, app_cookie):
     headers = {
-        'Accept': 'application/json',
+        'accept': 'application/json',
     }
     get_device_url = 'http://{}:8181/onos/v1/groups/{}/{}'.format(
-        controller_ip, devId, appCookie)
+        controller_ip, dev_id, app_cookie)
     resp = requests.delete(url=get_device_url, headers=headers, auth=auth)
     return resp.status_code

@@ -1,4 +1,4 @@
-from findAnotherWay import loadmap
+from find_another_way import loadmap
 from controller import block_fwd
 
 ip = "127.0.0.1"
